@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../models/hobby_model.dart';
 import '../../services/database_service.dart';
@@ -20,13 +19,13 @@ class FavoriteScreen extends StatelessWidget {
         centerTitle: false,
       ),
       body: StreamBuilder<List<HobbyModel>>(
-        // Kita hanya mengambil data yang isFavorite == true
+        // Mengambil data hobi secara real-time
         stream: db.getHobbies(), 
         builder: (context, snapshot) {
           if (snapshot.hasError) return ErrorView(message: snapshot.error.toString());
           if (snapshot.connectionState == ConnectionState.waiting) return const LoadingWidget();
 
-          // Filter data hanya yang difavoritkan
+          // Filter hanya yang masuk daftar favorit
           final favorites = snapshot.data?.where((h) => h.isFavorite).toList() ?? [];
 
           if (favorites.isEmpty) {
@@ -49,11 +48,10 @@ class FavoriteScreen extends StatelessWidget {
               final hobby = favorites[index];
 
               return Dismissible(
-                // Key harus unik agar Flutter tidak bingung saat item dihapus
                 key: Key(hobby.id),
                 direction: DismissDirection.endToStart, // Geser ke kiri untuk hapus
                 onDismissed: (direction) {
-                  // Logika hapus favorit (set isFavorite jadi false)
+                  // Hapus dari favorit (set isFavorite jadi false)
                   db.toggleFavorite(hobby.id, true);
                   
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -66,7 +64,6 @@ class FavoriteScreen extends StatelessWidget {
                     ),
                   );
                 },
-                // Background saat digeser (warna merah dengan ikon)
                 background: Container(
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.only(right: 20),
@@ -75,7 +72,7 @@ class FavoriteScreen extends StatelessWidget {
                     color: Colors.redAccent,
                     borderRadius: BorderRadius.circular(15),
                   ),
-                  child: const Icon(Icons.favorite_outline, color: Colors.white),
+                  child: const Icon(Icons.heart_broken, color: Colors.white),
                 ),
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 15),
@@ -84,7 +81,7 @@ class FavoriteScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(15),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
+                        color: Colors.black.withOpacity(0.05),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       )
@@ -94,7 +91,20 @@ class FavoriteScreen extends StatelessWidget {
                     contentPadding: const EdgeInsets.all(12),
                     leading: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: _buildImage(hobby.imageUrl),
+                      // FIX: Gunakan Image.network secara universal untuk Web & Mobile
+                      child: Image.network(
+                        hobby.imageUrl, 
+                        width: 60, 
+                        height: 60, 
+                        fit: BoxFit.cover,
+                        // Handler jika gambar gagal dimuat
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          width: 60,
+                          height: 60,
+                          color: Colors.grey[200],
+                          child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                        ),
+                      ),
                     ),
                     title: Text(hobby.name, 
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
@@ -117,14 +127,5 @@ class FavoriteScreen extends StatelessWidget {
         },
       ),
     );
-  }
-
-  // Helper untuk menangani gambar internet vs lokal
-  Widget _buildImage(String url) {
-    if (url.startsWith('http')) {
-      return Image.network(url, width: 60, height: 60, fit: BoxFit.cover);
-    } else {
-      return Image.file(File(url), width: 60, height: 60, fit: BoxFit.cover);
-    }
   }
 }

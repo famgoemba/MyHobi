@@ -1,7 +1,6 @@
-import 'dart:io'; // Penting untuk menangani file gambar lokal
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:image_picker/image_picker.dart'; // Tambahkan ini
+import 'package:image_picker/image_picker.dart'; // Jangan lupa pub add image_picker
 import '../../models/hobby_model.dart';
 import '../../services/database_service.dart';
 import '../../widgets/hobby_card.dart';
@@ -20,28 +19,27 @@ class _HomeScreenState extends State<HomeScreen> {
   final _locationController = TextEditingController();
   final user = FirebaseAuth.instance.currentUser;
   
-  File? _imageFile; // Variabel untuk menyimpan gambar yang dipilih
+  // Update: Menggunakan XFile agar aman untuk Web dan Mobile
+  XFile? _pickedFile; 
   final ImagePicker _picker = ImagePicker();
 
   String get _displayName => user?.email?.split('@')[0] ?? 'User';
 
-  // Fungsi untuk mengambil gambar dari galeri
   Future<void> _pickImage(StateSetter setDialogState) async {
-    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
       setDialogState(() {
-        _imageFile = File(pickedFile.path);
+        _pickedFile = image;
       });
     }
   }
 
   void _showAddHobbyDialog() {
-    // Reset image setiap kali dialog dibuka
-    _imageFile = null;
+    _pickedFile = null; // Reset gambar setiap buka dialog
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder( // Agar UI di dalam dialog bisa update saat pilih gambar
+      builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -50,26 +48,27 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // --- BAGIAN PILIH GAMBAR ---
+                  // --- PREVIEW GAMBAR (FIX ERROR WEB) ---
                   GestureDetector(
                     onTap: () => _pickImage(setDialogState),
                     child: Container(
-                      height: 120,
+                      height: 140,
                       width: double.infinity,
                       decoration: BoxDecoration(
                         color: Colors.grey.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(15),
                         border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
                       ),
-                      child: _imageFile != null
+                      child: _pickedFile != null
                           ? ClipRRect(
                               borderRadius: BorderRadius.circular(15),
-                              child: Image.file(_imageFile!, fit: BoxFit.cover),
+                              // Menggunakan Image.network karena XFile.path di Web adalah Blob URL
+                              child: Image.network(_pickedFile!.path, fit: BoxFit.cover),
                             )
                           : const Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.add_a_photo_outlined, color: Colors.blueAccent),
+                                Icon(Icons.add_a_photo_outlined, color: Colors.blueAccent, size: 30),
                                 SizedBox(height: 8),
                                 Text("Pilih Gambar", style: TextStyle(fontSize: 12, color: Colors.grey)),
                               ],
@@ -77,7 +76,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  // --- INPUT NAMA ---
                   TextField(
                     controller: _nameController,
                     decoration: InputDecoration(
@@ -87,11 +85,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  // --- INPUT LOKASI ---
                   TextField(
                     controller: _locationController,
                     decoration: InputDecoration(
-                      labelText: "Lokasi Spesifik",
+                      labelText: "Lokasi / Deskripsi",
                       prefixIcon: const Icon(Icons.location_on_outlined),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -108,12 +105,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 onPressed: () async {
                   if (_nameController.text.isNotEmpty) {
-                    // Simpan data (Path gambar lokal disimpan ke imageUrl)
                     await _db.addHobby(HobbyModel(
                       id: '',
                       name: _nameController.text,
                       location: _locationController.text,
-                      imageUrl: _imageFile?.path ?? 'https://picsum.photos/seed/hobi/400',
+                      // Simpan path gambar (di web ini akan jadi blob/data URL)
+                      imageUrl: _pickedFile?.path ?? 'https://picsum.photos/seed/${_nameController.text}/400',
                       isFavorite: false,
                     ));
                     _nameController.clear();
@@ -133,12 +130,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // ... (Sisa build sama seperti kodingan estetik sebelumnya)
       body: SafeArea(
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            // 1. Header & Greeting
+            // 1. Greeting Header
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
@@ -165,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // 2. Stats Card Section
+            // 2. Statistics Card
             SliverToBoxAdapter(
               child: StreamBuilder<List<HobbyModel>>(
                 stream: _db.getHobbies(),
@@ -178,8 +174,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.blueAccent, Colors.blueAccent.withOpacity(0.7)],
+                        gradient: const LinearGradient(
+                          colors: [Colors.blueAccent, Color(0xFF448AFF)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -214,7 +210,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // 3. List Hobi (Real-time)
+            // 3. Real-time Hobby List
             StreamBuilder<List<HobbyModel>>(
               stream: _db.getHobbies(),
               builder: (context, snapshot) {
