@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart'; // Pastikan file ini diimport
+import 'package:provider/provider.dart';
+import 'firebase_options.dart';
+import 'providers/theme_provider.dart';
 import 'screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Sekarang panggil Firebase dengan options hasil generate tadi
   await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform, // Ini kuncinya!
+    options: DefaultFirebaseOptions.currentPlatform,
   );
   
-  runApp(const MyHobiApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ThemeProvider(),
+      child: const MyHobiApp(),
+    ),
+  );
 }
 
 class MyHobiApp extends StatelessWidget {
@@ -19,13 +24,14 @@ class MyHobiApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Memanggil provider untuk memantau perubahan tema
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'MyHobi',
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF121212),
-        primaryColor: Colors.blueAccent,
-      ),
+      // Tema dinamis berdasarkan pilihan user
+      theme: themeProvider.currentTheme,
       home: const SplashScreen(),
     );
   }
