@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "82845309056",
+    "project_id": "myhobi-a1ef3",
+    "storage_bucket": "myhobi-a1ef3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:82845309056:android:b0960c80dcfddca42e6e65",
+        "android_client_info": {
+          "package_name": "com.example.myhobi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2UhnOHSkmZv3JPLg0FZyIGVVVM6tMdp4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
