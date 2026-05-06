@@ -1,5 +1,7 @@
+import 'dart:io'; // Penting untuk menangani file gambar lokal
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image_picker/image_picker.dart'; // Tambahkan ini
 import '../../models/hobby_model.dart';
 import '../../services/database_service.dart';
 import '../../widgets/hobby_card.dart';
@@ -17,62 +19,113 @@ class _HomeScreenState extends State<HomeScreen> {
   final _nameController = TextEditingController();
   final _locationController = TextEditingController();
   final user = FirebaseAuth.instance.currentUser;
+  
+  File? _imageFile; // Variabel untuk menyimpan gambar yang dipilih
+  final ImagePicker _picker = ImagePicker();
 
-  // Mendapatkan nama user dari Firestore (lebih bagus dari email)
   String get _displayName => user?.email?.split('@')[0] ?? 'User';
 
+  // Fungsi untuk mengambil gambar dari galeri
+  Future<void> _pickImage(StateSetter setDialogState) async {
+    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setDialogState(() {
+        _imageFile = File(pickedFile.path);
+      });
+    }
+  }
+
   void _showAddHobbyDialog() {
+    // Reset image setiap kali dialog dibuka
+    _imageFile = null;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Tambah Hobi Baru", style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _nameController, 
-              decoration: InputDecoration(
-                labelText: "Nama Hobi",
-                prefixIcon: const Icon(Icons.category_outlined),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      builder: (context) => StatefulBuilder( // Agar UI di dalam dialog bisa update saat pilih gambar
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Text("Tambah Hobi Baru", style: TextStyle(fontWeight: FontWeight.bold)),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // --- BAGIAN PILIH GAMBAR ---
+                  GestureDetector(
+                    onTap: () => _pickImage(setDialogState),
+                    child: Container(
+                      height: 120,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
+                      ),
+                      child: _imageFile != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(15),
+                              child: Image.file(_imageFile!, fit: BoxFit.cover),
+                            )
+                          : const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add_a_photo_outlined, color: Colors.blueAccent),
+                                SizedBox(height: 8),
+                                Text("Pilih Gambar", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                              ],
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // --- INPUT NAMA ---
+                  TextField(
+                    controller: _nameController,
+                    decoration: InputDecoration(
+                      labelText: "Nama Hobi",
+                      prefixIcon: const Icon(Icons.category_outlined),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // --- INPUT LOKASI ---
+                  TextField(
+                    controller: _locationController,
+                    decoration: InputDecoration(
+                      labelText: "Lokasi Spesifik",
+                      prefixIcon: const Icon(Icons.location_on_outlined),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _locationController, 
-              decoration: InputDecoration(
-                labelText: "Lokasi / Deskripsi",
-                prefixIcon: const Icon(Icons.location_on_outlined),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text("Batal")),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () async {
+                  if (_nameController.text.isNotEmpty) {
+                    // Simpan data (Path gambar lokal disimpan ke imageUrl)
+                    await _db.addHobby(HobbyModel(
+                      id: '',
+                      name: _nameController.text,
+                      location: _locationController.text,
+                      imageUrl: _imageFile?.path ?? 'https://picsum.photos/seed/hobi/400',
+                      isFavorite: false,
+                    ));
+                    _nameController.clear();
+                    _locationController.clear();
+                    if (mounted) Navigator.pop(context);
+                  }
+                },
+                child: const Text("Simpan", style: TextStyle(color: Colors.white)),
               ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Batal")),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blueAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            onPressed: () async {
-              if (_nameController.text.isNotEmpty) {
-                await _db.addHobby(HobbyModel(
-                  id: '',
-                  name: _nameController.text,
-                  location: _locationController.text,
-                  imageUrl: 'https://picsum.photos/seed/${_nameController.text}/400',
-                  isFavorite: false,
-                ));
-                _nameController.clear();
-                _locationController.clear();
-                if (mounted) Navigator.pop(context);
-              }
-            },
-            child: const Text("Simpan", style: TextStyle(color: Colors.white)),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -80,6 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // ... (Sisa build sama seperti kodingan estetik sebelumnya)
       body: SafeArea(
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
@@ -111,7 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // 2. Stats Card Section (Glassmorphism Style)
+            // 2. Stats Card Section
             SliverToBoxAdapter(
               child: StreamBuilder<List<HobbyModel>>(
                 stream: _db.getHobbies(),
