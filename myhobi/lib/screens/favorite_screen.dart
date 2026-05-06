@@ -112,7 +112,7 @@ class FavoriteScreen extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 4),
                       child: Row(
                         children: [
-                          const Icon(Icons.location_on_outlined, size: 14, color: Colors.blueAccent),
+                          const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFFC0EB1E)),
                           const SizedBox(width: 4),
                           Text(hobby.location, style: const TextStyle(fontSize: 12)),
                         ],

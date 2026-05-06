@@ -57,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         color: Colors.grey.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
+                        border: Border.all(color: Color(0xFFC0EB1E).withOpacity(0.2)),
                       ),
                       child: _pickedFile != null
                           ? ClipRRect(
@@ -68,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           : const Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.add_a_photo_outlined, color: Colors.blueAccent, size: 30),
+                                Icon(Icons.add_a_photo_outlined, color: Color(0xFFC0EB1E), size: 30),
                                 SizedBox(height: 8),
                                 Text("Pilih Gambar", style: TextStyle(fontSize: 12, color: Colors.grey)),
                               ],
@@ -100,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
               TextButton(onPressed: () => Navigator.pop(context), child: const Text("Batal")),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
+                  backgroundColor: Color(0xFFC0EB1E),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 onPressed: () async {
@@ -153,8 +153,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     CircleAvatar(
                       radius: 25,
-                      backgroundColor: Colors.blueAccent.withOpacity(0.1),
-                      child: const Icon(Icons.notifications_none_rounded, color: Colors.blueAccent),
+                      backgroundColor: Color(0xFFC0EB1E).withOpacity(0.1),
+                      child: const Icon(Icons.notifications_none_rounded, color: Color(0xFFC0EB1E)),
                     )
                   ],
                 ),
@@ -175,14 +175,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [Colors.blueAccent, Color(0xFF448AFF)],
+                          colors: [Color(0xFFC0EB1E), Color(0xFFC0EB1E)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.blueAccent.withOpacity(0.3),
+                            color: Color(0xFFC0EB1E).withOpacity(0.3),
                             blurRadius: 20,
                             offset: const Offset(0, 10),
                           )
@@ -257,7 +257,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddHobbyDialog,
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: Color(0xFFC0EB1E),
         foregroundColor: Colors.white,
         elevation: 4,
         label: const Text("Hobi Baru", style: TextStyle(fontWeight: FontWeight.bold)),

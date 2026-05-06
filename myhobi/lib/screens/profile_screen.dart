@@ -91,14 +91,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                   child: CircleAvatar(
                     radius: 40,
-                    backgroundColor: Colors.blueAccent.withOpacity(0.1),
+                    backgroundColor: Color(0xFFC0EB1E).withOpacity(0.1),
                     backgroundImage: _imageFile != null 
                         ? FileImage(_imageFile!) 
                         : (currentPhoto != null && currentPhoto.isNotEmpty && !currentPhoto.startsWith('http') 
                             ? FileImage(File(currentPhoto)) as ImageProvider 
                             : null),
                     child: (_imageFile == null && (currentPhoto == null || currentPhoto.isEmpty))
-                        ? const Icon(Icons.camera_alt_outlined, color: Colors.blueAccent)
+                        ? const Icon(Icons.camera_alt_outlined, color: Color(0xFFC0EB1E))
                         : null,
                   ),
                 ),
@@ -116,7 +116,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text("Batal")),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+              style: ElevatedButton.styleFrom(backgroundColor: Color(0xFFC0EB1E)),
               onPressed: () => _updateProfile(currentName, currentPhoto),
               child: const Text("Simpan", style: TextStyle(color: Colors.white)),
             ),
@@ -183,7 +183,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("Pengaturan", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                      const Text("Pengaturan", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFFC0EB1E))),
                       const SizedBox(height: 15),
                       _buildMenuTile(
                         icon: Icons.dark_mode_outlined,
@@ -192,7 +192,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         trailing: Switch(
                           value: themeProvider.isDarkMode,
                           onChanged: (value) => themeProvider.toggleTheme(),
-                          activeColor: Colors.blueAccent,
+                          activeColor: Color(0xFFC0EB1E),
                         ),
                       ),
                       GestureDetector(
@@ -234,7 +234,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       color: Colors.grey.withOpacity(0.05),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
-        leading: Icon(icon, color: Colors.blueAccent),
+        leading: Icon(icon, color: Color(0xFFC0EB1E)),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
         trailing: trailing ?? const Icon(Icons.arrow_forward_ios, size: 14),
