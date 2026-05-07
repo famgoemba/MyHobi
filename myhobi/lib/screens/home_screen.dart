@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:image_picker/image_picker.dart'; // Jangan lupa pub add image_picker
 import '../../models/hobby_model.dart';
 import '../../services/database_service.dart';
-import '../../widgets/hobby_card.dart';
-import '../../widgets/state_widgets.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,263 +12,251 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final DatabaseService _db = DatabaseService();
-  final _nameController = TextEditingController();
-  final _locationController = TextEditingController();
-  final user = FirebaseAuth.instance.currentUser;
-  
-  // Update: Menggunakan XFile agar aman untuk Web dan Mobile
-  XFile? _pickedFile; 
-  final ImagePicker _picker = ImagePicker();
+  int _activeTab = 0;
+  final List<String> _tabs = ["Latest", "Trending", "Saved"];
 
-  String get _displayName => user?.email?.split('@')[0] ?? 'User';
-
-  Future<void> _pickImage(StateSetter setDialogState) async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setDialogState(() {
-        _pickedFile = image;
-      });
-    }
-  }
-
-  void _showAddHobbyDialog() {
-    _pickedFile = null; // Reset gambar setiap buka dialog
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: const Text("Tambah Hobi Baru", style: TextStyle(fontWeight: FontWeight.bold)),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // --- PREVIEW GAMBAR (FIX ERROR WEB) ---
-                  GestureDetector(
-                    onTap: () => _pickImage(setDialogState),
-                    child: Container(
-                      height: 140,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: Color(0xFFC0EB1E).withOpacity(0.2)),
-                      ),
-                      child: _pickedFile != null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(15),
-                              // Menggunakan Image.network karena XFile.path di Web adalah Blob URL
-                              child: Image.network(_pickedFile!.path, fit: BoxFit.cover),
-                            )
-                          : const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.add_a_photo_outlined, color: Color(0xFFC0EB1E), size: 30),
-                                SizedBox(height: 8),
-                                Text("Pilih Gambar", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                              ],
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: _nameController,
-                    decoration: InputDecoration(
-                      labelText: "Nama Hobi",
-                      prefixIcon: const Icon(Icons.category_outlined),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _locationController,
-                    decoration: InputDecoration(
-                      labelText: "Lokasi / Deskripsi",
-                      prefixIcon: const Icon(Icons.location_on_outlined),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text("Batal")),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFFC0EB1E),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                onPressed: () async {
-                  if (_nameController.text.isNotEmpty) {
-                    await _db.addHobby(HobbyModel(
-                      id: '',
-                      name: _nameController.text,
-                      location: _locationController.text,
-                      // Simpan path gambar (di web ini akan jadi blob/data URL)
-                      imageUrl: _pickedFile?.path ?? 'https://picsum.photos/seed/${_nameController.text}/400',
-                      isFavorite: false,
-                    ));
-                    _nameController.clear();
-                    _locationController.clear();
-                    if (mounted) Navigator.pop(context);
-                  }
-                },
-                child: const Text("Simpan", style: TextStyle(color: Colors.white)),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
+  final List<Map<String, String>> _newsUpdates = [
+    {
+      "title": "Turnamen Futsal Nasional 2026 Dibuka!",
+      "category": "Sports",
+      "image": "https://images.unsplash.com/photo-1574629810360-7efbbe195018"
+    },
+    {
+      "title": "Tips Merawat Kamera Analog agar Awet",
+      "category": "Photography",
+      "image": "https://images.unsplash.com/photo-1516035069371-29a1b244cc32"
+    },
+    {
+      "title": "Komunitas Diecast Porsche Indonesia Gathering",
+      "category": "Hobby",
+      "image": "https://images.unsplash.com/photo-1503376780353-7e6692767b70"
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            // 1. Greeting Header
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Halo, $_displayName! 👋",
-                            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        Text("Kelola koleksi hobimu hari ini.",
-                            style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
-                      ],
-                    ),
-                    CircleAvatar(
-                      radius: 25,
-                      backgroundColor: Color(0xFFC0EB1E).withOpacity(0.1),
-                      child: const Icon(Icons.notifications_none_rounded, color: Color(0xFFC0EB1E)),
-                    )
-                  ],
-                ),
-              ),
-            ),
+    final user = FirebaseAuth.instance.currentUser;
 
-            // 2. Statistics Card
-            SliverToBoxAdapter(
-              child: StreamBuilder<List<HobbyModel>>(
-                stream: _db.getHobbies(),
-                builder: (context, snapshot) {
-                  int total = snapshot.data?.length ?? 0;
-                  int favorites = snapshot.data?.where((h) => h.isFavorite).length ?? 0;
-                  
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    child: Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFC0EB1E), Color(0xFFC0EB1E)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Color(0xFFC0EB1E).withOpacity(0.3),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
-                          )
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildStatItem("Total Hobi", total.toString(), Colors.white),
-                          Container(height: 40, width: 1, color: Colors.white24),
-                          _buildStatItem("Favorit", favorites.toString(), Colors.white),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(24, 24, 24, 8),
-                child: Text("Koleksi Kamu", 
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              ),
-            ),
-
-            // 3. Real-time Hobby List
-            StreamBuilder<List<HobbyModel>>(
-              stream: _db.getHobbies(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) return SliverToBoxAdapter(child: ErrorView(message: snapshot.error.toString()));
-                if (snapshot.connectionState == ConnectionState.waiting) return const SliverToBoxAdapter(child: LoadingWidget());
-                
-                final hobbies = snapshot.data ?? [];
-                if (hobbies.isEmpty) {
-                  return SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.inventory_2_outlined, size: 80, color: Colors.grey.withOpacity(0.5)),
-                          const SizedBox(height: 16),
-                          const Text("Belum ada koleksi hobi.", style: TextStyle(color: Colors.grey)),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-
-                return SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: HobbyCard(
-                          hobby: hobbies[index],
-                          onDelete: () => _db.deleteHobby(hobbies[index].id),
-                          onFavorite: () => _db.toggleFavorite(hobbies[index].id, hobbies[index].isFavorite),
-                        ),
-                      ),
-                      childCount: hobbies.length,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ],
+    // Hapus Scaffold & Row Sidebar di sini karena sudah ada di MainWrapper
+    return Row(
+      children: [
+        // AREA TENGAH (FEED)
+        Expanded(
+          flex: 3,
+          child: CustomScrollView(
+            slivers: [
+              _buildNewsSection(),
+              _buildTabSelector(),
+              _buildHobbyFeed(user),
+            ],
+          ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddHobbyDialog,
-        backgroundColor: Color(0xFFC0EB1E),
-        foregroundColor: Colors.white,
-        elevation: 4,
-        label: const Text("Hobi Baru", style: TextStyle(fontWeight: FontWeight.bold)),
-        icon: const Icon(Icons.add_rounded),
+        
+        // AREA KANAN (FILTER PANEL)
+        // Tetap dipertahankan karena ini bagian dari konten spesifik Home
+        _buildRightFilterPanel(),
+      ],
+    );
+  }
+
+  // --- KOMPONEN KONTEN ---
+
+  Widget _buildNewsSection() {
+    return SliverToBoxAdapter(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 25, 16, 15),
+            child: Text("Berita Hobi Terkini", 
+              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+          ),
+          SizedBox(
+            height: 180,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(left: 20),
+              itemCount: _newsUpdates.length,
+              itemBuilder: (context, index) => _newsCard(_newsUpdates[index]),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildStatItem(String label, String value, Color color) {
-    return Column(
-      children: [
-        Text(value, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: color)),
-        Text(label, style: TextStyle(fontSize: 13, color: color.withOpacity(0.8))),
-      ],
+  Widget _newsCard(Map<String, String> news) {
+    return Container(
+      width: 280,
+      margin: const EdgeInsets.only(right: 15),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        image: DecorationImage(
+          image: NetworkImage(news['image']!), 
+          fit: BoxFit.cover, 
+          colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.4), BlendMode.darken)
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
+              decoration: BoxDecoration(color: const Color(0xFFC0EB1E), borderRadius: BorderRadius.circular(6)), 
+              child: Text(news['category']!, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black))
+            ),
+            const SizedBox(height: 8),
+            Text(news['title']!, 
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabSelector() {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 25),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(_tabs.length, (i) => GestureDetector(
+            onTap: () => setState(() => _activeTab = i),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+              decoration: BoxDecoration(
+                color: _activeTab == i ? const Color(0xFF1B1C21) : Colors.transparent, 
+                borderRadius: BorderRadius.circular(12),
+                border: _activeTab == i ? Border.all(color: const Color(0xFFC0EB1E).withOpacity(0.3)) : null,
+              ),
+              child: Text(_tabs[i], 
+                style: TextStyle(color: _activeTab == i ? const Color(0xFFC0EB1E) : Colors.grey, fontWeight: FontWeight.bold)),
+            ),
+          )),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHobbyFeed(User? user) {
+    return StreamBuilder<List<HobbyModel>>(
+      stream: _db.getHobbies(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator(color: Color(0xFFC0EB1E))));
+        
+        var hobbies = snapshot.data!;
+        if (_activeTab == 2) { 
+          hobbies = hobbies.where((h) => h.isFavorite).toList();
+        }
+
+        return SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => _postCard(hobbies[index], user),
+              childCount: hobbies.length,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _postCard(HobbyModel hobby, User? user) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 25),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1B1C21), 
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.03))
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: CircleAvatar(
+              backgroundImage: NetworkImage('https://ui-avatars.com/api/?name=${user?.email}&background=C0EB1E&color=000'),
+            ),
+            title: Text(user?.email?.split('@')[0] ?? 'User', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            subtitle: Text(hobby.location, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+            trailing: const Icon(Icons.more_horiz, color: Colors.grey),
+          ),
+          const SizedBox(height: 12),
+          Text(hobby.name, style: const TextStyle(color: Colors.white, fontSize: 15)),
+          const SizedBox(height: 15),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(15),
+            child: Image.network(
+              hobby.imageUrl, 
+              height: 400, 
+              width: double.infinity, 
+              fit: BoxFit.cover,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              _actionButton(
+                hobby.isFavorite ? Icons.favorite : Icons.favorite_border, 
+                hobby.isFavorite ? Colors.red : Colors.grey, 
+                "Like",
+                () => _db.toggleFavorite(hobby.id, hobby.isFavorite)
+              ),
+              const SizedBox(width: 25),
+              _actionButton(Icons.chat_bubble_outline, Colors.grey, "Comment", () {}),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _actionButton(IconData icon, Color color, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(width: 8),
+          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRightFilterPanel() {
+    return Container(
+      width: 260,
+      padding: const EdgeInsets.all(25),
+      decoration: const BoxDecoration(
+        color: Color(0xFF1B1C21), 
+        border: Border(left: BorderSide(color: Colors.white10))
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(children: [
+            Icon(Icons.tune, color: Color(0xFFC0EB1E), size: 20), 
+            SizedBox(width: 10), 
+            Text("Filters", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16))
+          ]),
+          const SizedBox(height: 30),
+          const Text("LOKASI FEED", style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: const Color(0xFF0F1014), borderRadius: BorderRadius.circular(10)),
+            child: const Text("Worldwide", style: TextStyle(color: Colors.white, fontSize: 12)),
+          ),
+        ],
+      ),
     );
   }
 }
