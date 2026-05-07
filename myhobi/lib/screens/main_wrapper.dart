@@ -3,6 +3,7 @@ import 'home_screen.dart';
 import 'chat_screen.dart';
 import 'games_screen.dart';
 import 'profile_screen.dart';
+import 'add_hobby_screen.dart'; // Import halaman tambah hobi
 
 class MainWrapper extends StatefulWidget {
   const MainWrapper({super.key});
@@ -12,10 +13,8 @@ class MainWrapper extends StatefulWidget {
 }
 
 class _MainWrapperState extends State<MainWrapper> {
-  // Kita tetap menggunakan index untuk menentukan layar mana yang aktif
   int _selectedIndex = 0;
 
-  // List Screen sesuai urutan di Sidebar: Home (0), Chat (1), Games (2), Profile (3)
   final List<Widget> _screens = [
     const HomeScreen(),
     const ChatScreen(),
@@ -26,13 +25,29 @@ class _MainWrapperState extends State<MainWrapper> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Hapus bottomNavigationBar total
+      backgroundColor: const Color(0xFF0F1014),
+      
+      // --- TOMBOL TAMBAH HOBI (FAB) ---
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFFC0EB1E),
+        elevation: 4,
+        onPressed: () {
+          // Navigasi ke halaman tambah hobi yang baru kita buat
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AddHobbyScreen()),
+          );
+        },
+        child: const Icon(Icons.add, color: Colors.black, size: 28),
+      ),
+
+      // --- LAYOUT UTAMA ---
       body: Row(
         children: [
-          // Sidebar Navigasi Custom sebagai pengganti BottomNav
+          // Sidebar Kiri Tetap (Fixed)
           _buildSidebar(),
           
-          // Area Konten Utama
+          // Konten Utama yang berganti-ganti
           Expanded(
             child: IndexedStack(
               index: _selectedIndex,
@@ -44,22 +59,31 @@ class _MainWrapperState extends State<MainWrapper> {
     );
   }
 
+  // --- WIDGET SIDEBAR ---
   Widget _buildSidebar() {
     return Container(
       width: 70,
-      color: const Color(0xFF1B1C21), // Warna gelap sesuai desain
+      decoration: const BoxDecoration(
+        color: Color(0xFF1B1C21),
+        border: Border(right: BorderSide(color: Colors.white10, width: 0.5)),
+      ),
       child: Column(
         children: [
-          const SizedBox(height: 30),
+          const SizedBox(height: 40),
+          // Logo singkat MyHobi (Opsional)
+          const Text("MH", style: TextStyle(color: Color(0xFFC0EB1E), fontWeight: FontWeight.bold, fontSize: 18)),
+          const SizedBox(height: 40),
+          
           _sidebarItem(Icons.home_filled, 0),
           _sidebarItem(Icons.chat_bubble_outline, 1),
           _sidebarItem(Icons.videogame_asset_outlined, 2),
           _sidebarItem(Icons.person_outline, 3),
+          
           const Spacer(),
-          const Padding(
-            padding: EdgeInsets.only(bottom: 20),
-            child: Icon(Icons.settings, color: Colors.grey, size: 22),
-          ),
+          
+          // Tombol Setting di bawah
+          _sidebarItem(Icons.settings, 99), // 99 hanya dummy index
+          const SizedBox(height: 20),
         ],
       ),
     );
@@ -68,9 +92,19 @@ class _MainWrapperState extends State<MainWrapper> {
   Widget _sidebarItem(IconData icon, int index) {
     bool isActive = _selectedIndex == index;
     return GestureDetector(
-      onTap: () => setState(() => _selectedIndex = index),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20),
+      onTap: () {
+        if (index != 99) {
+          setState(() => _selectedIndex = index);
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFFC0EB1E).withOpacity(0.05) : Colors.transparent,
+          shape: BoxShape.circle,
+        ),
         child: Icon(
           icon,
           color: isActive ? const Color(0xFFC0EB1E) : Colors.grey,
